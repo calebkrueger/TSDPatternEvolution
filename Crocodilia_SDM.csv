@@ -1,0 +1,19 @@
+Order,Family,Genus,Species,Subspecies,SDM,SDM_Confidence,Type,Type_Confidence
+Crocodilia,Alligatoridae,Alligator,Alligator_mississippiensis,NA,TSD,1,II,1
+Crocodilia,Alligatoridae,Alligator,Alligator_sinensis,NA,TSD,1,II,1
+Crocodilia,Alligatoridae,Caiman,Caiman_crocodilus,"apaporiensis, chiapasius, crocodilus, fuscus",TSD,1,II,1
+Crocodilia,Alligatoridae,Caiman,Caiman_latirostris,"chacoensis, latirostris",TSD,1,II,1
+Crocodilia,Alligatoridae,Caiman,Caiman_yacare,"medemi, yacare",TSD,1,Ib,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_acutus,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_intermedius,NA,TSD,1,NA,NA
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_johnsoni,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_mindorensis,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_moreletii,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_niloticus,"niloticus, africanus, chamses, cowiei, pauciscutatus",TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_palustris,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_porosus,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Crocodylus,Crocodylus_siamensis,NA,TSD,1,II,1
+Crocodilia,Gavialidae,Gavialis,Gavialis_gangeticus,NA,TSD,1,II,1
+Crocodilia,Crocodylidae,Mecistops,Mecistops_cataphractus,NA,TSD,1,NA,NA
+Crocodilia,Alligatoridae,Melanosuchus,Melanosuchus_niger,NA,TSD,1,NA,NA
+Crocodilia,Alligatoridae,Paleosuchus,Paleosuchus_trigonatus,NA,TSD,1,Ib,1
