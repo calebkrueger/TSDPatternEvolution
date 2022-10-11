@@ -80,6 +80,7 @@ tpiv.upper.97.5<-NULL
 tpiv.upper.2.5<-NULL
 tpiv.lower.97.5<-NULL
 tpiv.lower.2.5<-NULL
+max.males.temp<-NULL
 
 # Fit reaction norms for pattern II TSD species and extract pivotal temperature values + credible intervals
 for(i in species.II){
@@ -90,17 +91,19 @@ for(i in species.II){
   log.p$Max[1]<-log.p$Prior1[1]+5
   log.p$Min[3]<-log.p$Prior1[3]-5
   log.p$Max[3]<-log.p$Prior1[3]+5
-  log.result<-tsd_MHmcmc(result=log, parametersMCMC=log.p, n.iter=100000, adaptive=T)
+  log.result<-tsd_MHmcmc(result=log, parametersMCMC=log.p, n.iter=1e5, adaptive=T)
   # Commented out code for visualizing the reaction norm fit and lower pivotal temperature prior + posterior
   #plot(log.result, parameters="P_low", xlim=c(log.p$Min[1], log.p$Max[1]), main=i[1,4])
   #plot(log, resultmcmc=log.result, main=i[1,4], xlim=c(18,35), show.PTRT=F, show.observations=T)
-  CI<-P_TRT(resultmcmc=log.result, equation="logistic", replicate.CI=100000)
+  CI<-P_TRT(resultmcmc=log.result, equation="logistic", replicate.CI=1e5)
   tpiv.upper<-c(tpiv.upper, as.numeric(CI$P_TRT_quantiles[2,8]))
   tpiv.lower<-c(tpiv.lower, as.numeric(CI$P_TRT_quantiles[2,4]))
   tpiv.upper.97.5<-c(tpiv.upper.97.5, as.numeric(CI$P_TRT_quantiles[3,8]))
   tpiv.upper.2.5<-c(tpiv.upper.2.5, as.numeric(CI$P_TRT_quantiles[1,8]))
   tpiv.lower.97.5<-c(tpiv.lower.97.5, as.numeric(CI$P_TRT_quantiles[3,4]))
   tpiv.lower.2.5<-c(tpiv.lower.2.5, as.numeric(CI$P_TRT_quantiles[1,4]))
+  pred<-predict(log, temperatures=seq(CI$P_TRT_quantiles[2,4],CI$P_TRT_quantiles[2,8],by=0.001),resultmcmc = log.result)
+  max.males.temp<-c(max.males.temp, as.numeric(names(which.max(pred[2,]))))
 }
 
 # Fit reaction norms for pattern Ia TSD species and extract pivotal temperature values + credible intervals
@@ -109,23 +112,24 @@ for(i in species.Ia) {
   log.p<-tsd_MHmcmc_p(log, accept=T)
   log.p$Min[1]<-log.p$Prior1[1]-5
   log.p$Max[1]<-log.p$Prior1[1]+5
-  log.result<-tsd_MHmcmc(result=log, parametersMCMC=log.p, n.iter=100000, adaptive=T)
+  log.result<-tsd_MHmcmc(result=log, parametersMCMC=log.p, n.iter=1e5, adaptive=T)
   # Commented out code for visualizing the reaction norm fit and pivotal temperature prior + posterior
   #plot(log.result, parameters="P", xlim=c(log.p$Min[1], log.p$Max[1]), main=i[1,4])
   #plot(log, resultmcmc = log.result, main = i[1,4], xlim=c(18,35), show.PTRT=F, show.observations=T, lwd=3, col="gray55")
-  CI<-P_TRT(resultmcmc=log.result, equation="logistic", replicate.CI=100000)
+  CI<-P_TRT(resultmcmc=log.result, equation="logistic", replicate.CI=1e5)
   tpiv.upper<-c(tpiv.upper, as.numeric(CI$P_TRT_quantiles[2,4]))
   tpiv.lower<-c(tpiv.lower, as.numeric(CI$P_TRT_quantiles[2,4]))
   tpiv.upper.97.5<-c(tpiv.upper.97.5, as.numeric(CI$P_TRT_quantiles[3,4]))
   tpiv.upper.2.5<-c(tpiv.upper.2.5, as.numeric(CI$P_TRT_quantiles[1,4]))
   tpiv.lower.97.5<-c(tpiv.lower.97.5, as.numeric(CI$P_TRT_quantiles[3,4]))
   tpiv.lower.2.5<-c(tpiv.lower.2.5, as.numeric(CI$P_TRT_quantiles[1,4]))
+  max.males.temp<-c(max.males.temp, NA)
 }
 
 # Put data in a dataframe
-tpiv<-data.frame(matrix(NA, nrow = length(species.II)+length(species.Ia), ncol = 10))
+tpiv<-data.frame(matrix(NA, nrow = length(species.II)+length(species.Ia), ncol = 11))
 colnames(tpiv)<-c("Species", "Pattern", "Upper_Tpiv", "Upper_Tpiv_2.5", "Upper_Tpiv_97.5", "Upper_Tpiv_CI",
-                  "Lower_Tpiv", "Lower_Tpiv_2.5", "Lower_Tpiv_97.5", "Lower_Tpiv_CI")
+                  "Lower_Tpiv", "Lower_Tpiv_2.5", "Lower_Tpiv_97.5", "Lower_Tpiv_CI","Max_Males_Temp")
 names<-NULL
 for(i in species.II) {
   names<-c(names, as.character(i[1,4]))
@@ -145,7 +149,9 @@ tpiv$Lower_Tpiv_2.5<-tpiv.lower.2.5
 tpiv$Lower_Tpiv_97.5<-tpiv.lower.97.5
 tpiv$Upper_Tpiv_CI<-as.numeric(tpiv$Upper_Tpiv_97.5-tpiv$Upper_Tpiv_2.5)
 tpiv$Lower_Tpiv_CI<-as.numeric(tpiv$Lower_Tpiv_97.5-tpiv$Lower_Tpiv_2.5)
-tpiv$Difference<-as.numeric((tpiv$Upper_Tpiv)-(tpiv$Lower_Tpiv))  #Calculate width of reaction norm
+tpiv$Max_Males_Temp<-as.numeric(max.males.temp)
+tpiv$Centered_Upper_Tpiv<-tpiv$Upper_Tpiv-tpiv$Max_Males_Temp
+tpiv$Centered_Lower_Tpiv<-tpiv$Max_Males_Temp-tpiv$Lower_Tpiv
 
 # Remove P. expansa due to uncertainty in TSD pattern
 tpiv<-tpiv[!tpiv$Species=="Podocnemis_expansa",]
@@ -154,7 +160,7 @@ tpiv<-tpiv[!tpiv$Species=="Podocnemis_expansa",]
 tpiv.II<-subset(tpiv, tpiv$Pattern=="II")
 
 ############################################################
-# Phylogenetic regressions
+# Regressions
 
 # Read in maximum clade credibility chronogram from Thomson et al. (2021) and match with SDM data
 # Create separate trees with just pattern II species and all TSD species
@@ -170,100 +176,68 @@ tpiv<-tpiv[match(thom$tip.label, tpiv$Species),]
 tpiv.II<-tpiv.II[tpiv.II$Species %in% thom.II$tip.label,]
 tpiv.II<-tpiv.II[match(thom.II$tip.label, tpiv.II$Species),]
 
-# Convert to rrpp dataframe
-tpiv<-rrpp.data.frame(tpiv)
-tpiv.II<-rrpp.data.frame(tpiv.II)
+# Test for phylogenetic signal in raw Tpiv values
+phylosig(thom.II, tpiv.II$Upper_Tpiv, method="K", test=T, nsim=10000)
+phylosig(thom.II, tpiv.II$Upper_Tpiv, method="lambda", test=T, nsim=10000)
+phylosig(thom.II, tpiv.II$Lower_Tpiv, method="K", test=T, nsim=10000)
+phylosig(thom.II, tpiv.II$Lower_Tpiv, method="lambda", test=T, nsim=10000)
 
-# Calculate variance-covariance matrix for analysis from the Thomson phylogeny
-cov<-vcv(thom)
-cov.II<-vcv(thom.II)
+# Fit basic linear model using RRPP
+model.lm<-lm.rrpp(Centered_Upper_Tpiv~Centered_Lower_Tpiv, data=tpiv.II, iter=9999)
+summary(model.lm)
 
-# Fit phylogenetic linear regressions with RRPP
-model.upper.thom<-lm.rrpp(Difference~Upper_Tpiv, data=tpiv.II, Cov=cov.II, iter=9999)
-anova(model.upper.thom)
-model.lower.thom<-lm.rrpp(Difference~Lower_Tpiv, data=tpiv.II, Cov=cov.II, iter=9999)
-anova(model.lower.thom)
+# Test for phylogenetic signal in residuals
+res.lm<-model.lm$LM$residuals
+names(res.lm)<-thom.II$tip.label
+phylosig(thom.II, res.lm, method="K", test=T, nsim=10000)
+phylosig(thom.II, res.lm, method="lambda", test=T, nsim=10000)
 
-# Repeat analysis with 100 trees from posterior of Thomson et al.
-tree<-read.tree("Thomson_Posterior.nwk", tree.names=T)
-tree.II<-list()
-for(i in 1:length(tree)){
-  tree.II[[i]]<-drop.tip(tree[[i]], setdiff(tree[[i]]$tip.label, tpiv.II$Species))
-  tree.II[[i]]<-ladderize(tree.II[[i]])
-}
+# Residuals show heteroskedasticity - fit weighted linear model
+w<-1/((lm.rrpp(abs(model.lm$LM$residuals)~model.lm$LM$fitted, iter=9999)$LM$fitted)^2)
+model.w<-lm.rrpp(Centered_Upper_Tpiv~Centered_Lower_Tpiv, data=tpiv.II, weights=w, iter=9999)
+summary(model.w)
 
-up<-list()
-low<-list()
-for(i in 1:length(tree.II)){
-  cov.II.i<-vcv(tree.II[[i]])
-  up[[i]]<-lm.rrpp(Difference~Upper_Tpiv, data=tpiv.II, Cov=cov.II.i, iter=9999)
-  low[[i]]<-lm.rrpp(Difference~Lower_Tpiv, data=tpiv.II, Cov=cov.II.i, iter=9999)
-}
+# Test for phylogenetic signal in residuals
+res.lm<-as.numeric(model.w$LM$gls.residuals)
+names(res.lm)<-thom.II$tip.label
+phylosig(thom.II, res.lm, method="K", test=T, nsim=10000)
+phylosig(thom.II, res.lm, method="lambda", test=T, nsim=10000)
 
-# Extract R2 and p values from posterior tree analysis
-up.post<-data.frame(matrix(NA, nrow=101, ncol=2))
-low.post<-data.frame(matrix(NA, nrow=101, ncol=2))
-colnames(up.post)<-colnames(low.post)<-c("R2","p")
-for(i in 1:length(up)){
-  up.post[i,1]<-anova(up[[i]])$table[1,4]
-  up.post[i,2]<-anova(up[[i]])$table[1,7]
-  low.post[i,1]<-anova(low[[i]])$table[1,4]
-  low.post[i,2]<-anova(low[[i]])$table[1,7]
-}
-up.post[101,1]<-anova(model.upper.thom)$table[1,4]
-up.post[101,2]<-anova(model.upper.thom)$table[1,7]
-low.post[101,1]<-anova(model.lower.thom)$table[1,4]
-low.post[101,2]<-anova(model.lower.thom)$table[1,7]
-
-# Check range of correlations and p-values across the 101 dated phylogenies
-median(up.post$R2)
-HPDinterval(as.mcmc(up.post$R2))
-median(up.post$p)
-HPDinterval(as.mcmc(up.post$p))
-median(low.post$R2)
-HPDinterval(as.mcmc(low.post$R2))
-median(low.post$p)
-HPDinterval(as.mcmc(low.post$p))
-
-# Plot regressions with 95% CI from Thomson phylogeny and regression lines from 100 posterior trees
+# Plot regression with 95% CI
 png(filename = "Thomson Correlations.png", res = 300, width = 2310, height = 2100)
 
-par(mfrow=c(2,1))
-par(mar=c(5,6,1,2))
-new.up<-seq((min(tpiv.II$Upper_Tpiv)-1), (max(tpiv.II$Upper_Tpiv)+1), by=0.05)
-ci.up<-predict(model.upper.thom, newdata=data.frame(Upper_Tpiv=new.up), confidence=0.95)
-plot(tpiv.II$Upper_Tpiv, tpiv.II$Difference, xlab=NA, yaxt="n", ylab=NA, pch=16, cex=1.8, cex.axis=1.5, cex.lab=2)
-polygon(c(new.up,rev(new.up)),c(ci.up$lcl,rev(ci.up$ucl)), col=alpha("gray80",0.5), border=NA)
-for(i in 1:length(up)){
-  abline(a=up[[i]]$LM$gls.coefficients[[1]], b=up[[i]]$LM$gls.coefficients[[2]], lwd=3, col=alpha("gray40", alpha=0.1))
-}
-par(new=TRUE)
-plot(tpiv.II$Upper_Tpiv, tpiv.II$Difference, xlab=NA, ylab=NA, pch=16, cex=1.8, cex.axis=1.5, cex.lab=2)
-abline(a=model.upper.thom$LM$gls.coefficients[1], b=model.upper.thom$LM$gls.coefficients[2], lwd=4)
-title(xlab=expression(paste(Upper~T[piv]," (",degree,"C)")), line=3.5, cex.lab=1.8)
-title(ylab=expression(paste("Breadth (",degree,"C)")), line=2.4, cex.lab=1.8)
-
-par(mar=c(5,6,1,2))
-new.low<-seq((min(tpiv.II$Lower_Tpiv)-1), (max(tpiv.II$Lower_Tpiv)+1), by=0.05)
-ci.low<-predict(model.lower.thom, newdata=data.frame(Lower_Tpiv=new.low), confidence=0.95)
-plot(tpiv.II$Lower_Tpiv, tpiv.II$Difference, xlab=NA, ylab=NA, pch=16, cex=1.8, cex.axis=1.5, cex.lab=2)
-polygon(c(new.low,rev(new.low)),c(ci.low$lcl,rev(ci.low$ucl)), col=alpha("gray80",0.5), border=NA)
-for(i in 1:length(low)){
-  abline(a=low[[i]]$LM$gls.coefficients[[1]], b=low[[i]]$LM$gls.coefficients[[2]], lwd=3, col=alpha("gray40", alpha=0.1))
-}
-par(new=TRUE)
-plot(tpiv.II$Lower_Tpiv, tpiv.II$Difference, xlab=NA, ylab=NA, pch=16, cex=1.8, cex.axis=1.5, cex.lab=2)
-abline(a=model.lower.thom$LM$gls.coefficients[1], b=model.lower.thom$LM$gls.coefficients[2], lwd=4)
-title(xlab=expression(paste(Lower~T[piv]," (",degree,"C)")), line=3.5, cex.lab=1.8)
-title(ylab=expression(paste("Breadth (",degree,"C)")), line=2.4, cex.lab=1.8)
+par(mar=c(5,5,1,1))
+new.dat<-seq((min(tpiv.II$Centered_Lower_Tpiv)-0.5), (max(tpiv.II$Centered_Lower_Tpiv)+1), by=0.001)
+ci<-predict(model.w, newdata=data.frame(Centered_Lower_Tpiv=new.dat), confidence=0.95)
+plot(tpiv.II$Centered_Lower_Tpiv, tpiv.II$Centered_Upper_Tpiv, xlab=NA, ylab=NA, pch=16, cex=1.8, cex.axis=1.5, cex.lab=2)
+polygon(c(new.dat, rev(new.dat)), c(ci$lcl, rev(ci$ucl)), col=alpha("gray80",0.5), border=NA)
+par(new=T)
+plot(tpiv.II$Centered_Lower_Tpiv, tpiv.II$Centered_Upper_Tpiv, xlab=NA, ylab=NA, pch=16, cex=1.8, cex.axis=1.5, cex.lab=2)
+abline(a=model.w$LM$gls.coefficients[[1]], b=model.w$LM$gls.coefficients[[2]], lwd=4)
+title(xlab=expression(paste("|",Lower~T[piv],"| (",degree,"C)")), line=3.5, cex.lab=1.8)
+title(ylab=expression(paste("|",Upper~T[piv],"| (",degree,"C)")), line=2.4, cex.lab=1.8)
 
 dev.off()
 
+############################################################
 # Compare Tpiv distributions between pattern Ia and pattern II
+model.lm<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv, iter=9999)
+summary(model.lm)
+
+# Test for phylogenetic signal
+res.lm<-model.lm$LM$residuals
+names(res.lm)<-thom$tip.label
+phylosig(thom, res.lm, method="K", test=T, nsim=10000)
+phylosig(thom, res.lm, method="lambda", test=T, nsim=10000)
+
+# Compare Tpiv distributions between patterns
+# Account for phylogeny due to presence of phylogenetic signal in residuals
+cov<-vcv(thom)
 model.thom<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv, Cov=cov, iter=9999)
 anova(model.thom)
 
 # Repeat ANOVA with 100 posterior trees
+tree<-read.tree("Thomson_Posterior.nwk", tree.names=T)
 tree.new<-list()
 for(i in 1:length(tree)){
   tree.new[[i]]<-drop.tip(tree[[i]], setdiff(tree[[i]]$tip.label, tpiv$Species))
@@ -272,8 +246,9 @@ for(i in 1:length(tree)){
 
 out<-list()
 for(i in 1:length(tree.new)){
+  tpiv.i<-tpiv[match(tree.new[[i]]$tip.label, tpiv$Species),]
   cov.i<-vcv(tree.new[[i]])
-  out[[i]]<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv, Cov=cov.i, iter=9999)
+  out[[i]]<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv.i, Cov=cov.i, iter=9999)
 }
 
 out.post<-data.frame(matrix(NA, nrow=101, ncol=2))
@@ -289,32 +264,7 @@ HPDinterval(as.mcmc(out.post$R2))
 median(out.post$p)
 HPDinterval(as.mcmc(out.post$p))
 
-# Plot as density maps rather than boxplots + violin plots to show difference in counts between patterns
-tpiv<-data.frame(matrix(NA, nrow = length(species.II)+length(species.Ia), ncol = 10))
-colnames(tpiv)<-c("Species", "Pattern", "Upper_Tpiv", "Upper_Tpiv_2.5", "Upper_Tpiv_97.5", "Upper_Tpiv_CI",
-                  "Lower_Tpiv", "Lower_Tpiv_2.5", "Lower_Tpiv_97.5", "Lower_Tpiv_CI")
-names<-NULL
-for(i in species.II) {
-  names<-c(names, as.character(i[1,4]))
-}
-for(i in species.Ia) {
-  names<-c(names, as.character(i[1,4]))
-}
-tpiv$Species<-names
-pattern<-c(rep("II",length(species.II)),
-           rep("Ia",length(species.Ia)))
-tpiv$Pattern<-as.factor(pattern)
-tpiv$Upper_Tpiv<-tpiv.upper
-tpiv$Upper_Tpiv_2.5<-tpiv.upper.2.5
-tpiv$Upper_Tpiv_97.5<-tpiv.upper.97.5
-tpiv$Lower_Tpiv<-tpiv.lower
-tpiv$Lower_Tpiv_2.5<-tpiv.lower.2.5
-tpiv$Lower_Tpiv_97.5<-tpiv.lower.97.5
-tpiv$Upper_Tpiv_CI<-as.numeric(tpiv$Upper_Tpiv_97.5-tpiv$Upper_Tpiv_2.5)
-tpiv$Lower_Tpiv_CI<-as.numeric(tpiv$Lower_Tpiv_97.5-tpiv$Lower_Tpiv_2.5)
-tpiv$Difference<-as.numeric((tpiv$Upper_Tpiv)-(tpiv$Lower_Tpiv))
-tpiv<-tpiv[!tpiv$Species=="Podocnemis_expansa",] #Remove due to uncertain pattern
-
+# Plot
 png(filename = "Thomson Tpiv Comparison Densities.png", res = 300, width = 2310, height = 2100)
 
 ggplot(tpiv, aes(x=Upper_Tpiv, y=after_stat(count), fill=Pattern)) +
@@ -338,29 +288,28 @@ ggplot(tpiv, aes(x=Upper_Tpiv, y=after_stat(count), fill=Pattern)) +
 dev.off()
 
 # Repeat comparison without outliers and C. rossignonii
-tpiv<-tpiv[!tpiv$Species=="Kinosternon_stejnegeri",]
-tpiv<-tpiv[!tpiv$Species=="Pelomedusa_subrufa",]
-tpiv<-tpiv[!tpiv$Species=="Pelusios_castaneus",]
-tpiv<-tpiv[!tpiv$Species=="Chelydra_rossignonii",]
-tpiv<-tpiv[tpiv$Species %in% thom$tip.label,]
-thom<-drop.tip(thom, setdiff(thom$tip.label, tpiv$Species))
-tpiv<-tpiv[match(thom$tip.label, tpiv$Species),]
-tpiv<-rrpp.data.frame(tpiv)
-cov<-vcv(thom)
+tpiv.sub<-tpiv[!tpiv$Species=="Kinosternon_stejnegeri",]
+tpiv.sub<-tpiv.sub[!tpiv.sub$Species=="Pelomedusa_subrufa",]
+tpiv.sub<-tpiv.sub[!tpiv.sub$Species=="Pelusios_castaneus",]
+tpiv.sub<-tpiv.sub[!tpiv.sub$Species=="Chelydra_rossignonii",]
+thom.sub<-drop.tip(thom, setdiff(thom$tip.label, tpiv.sub$Species))
+tpiv.sub<-tpiv.sub[match(thom.sub$tip.label, tpiv.sub$Species),]
+cov<-vcv(thom.sub)
 
-model.thom<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv, Cov=cov, iter=9999)
+model.thom<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv.sub, Cov=cov, iter=9999)
 anova(model.thom)
 
 tree.new<-list()
 for(i in 1:length(tree)){
-  tree.new[[i]]<-drop.tip(tree[[i]], setdiff(tree[[i]]$tip.label, tpiv$Species))
+  tree.new[[i]]<-drop.tip(tree[[i]], setdiff(tree[[i]]$tip.label, tpiv.sub$Species))
   tree.new[[i]]<-ladderize(tree.new[[i]])
 }
 
 out<-list()
 for(i in 1:length(tree.new)){
+  tpiv.sub.i<-tpiv.sub[match(tree.new[[i]]$tip.label, tpiv.sub$Species),]
   cov.i<-vcv(tree.new[[i]])
-  out[[i]]<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv, Cov=cov.i, iter=9999)
+  out[[i]]<-lm.rrpp(Upper_Tpiv~Pattern, data=tpiv.sub.i, Cov=cov.i, iter=9999)
 }
 
 out.post<-data.frame(matrix(NA, nrow=101, ncol=2))
@@ -378,38 +327,6 @@ HPDinterval(as.mcmc(out.post$p))
 
 ############################################################
 # Calculate correlation between (upper) Tpiv and liabilities simulated under threshold model
-
-# Recreate Tpiv dataframe
-tpiv<-data.frame(matrix(NA, nrow = length(species.II)+length(species.Ia), ncol = 10))
-colnames(tpiv)<-c("Species", "Pattern", "Upper_Tpiv", "Upper_Tpiv_2.5", "Upper_Tpiv_97.5", "Upper_Tpiv_CI",
-                  "Lower_Tpiv", "Lower_Tpiv_2.5", "Lower_Tpiv_97.5", "Lower_Tpiv_CI")
-names<-NULL
-for(i in species.II) {
-  names<-c(names, as.character(i[1,4]))
-}
-for(i in species.Ia) {
-  names<-c(names, as.character(i[1,4]))
-}
-tpiv$Species<-names
-pattern<-c(rep("II",length(species.II)),
-           rep("Ia",length(species.Ia)))
-tpiv$Pattern<-as.factor(pattern)
-tpiv$Upper_Tpiv<-tpiv.upper
-tpiv$Upper_Tpiv_2.5<-tpiv.upper.2.5
-tpiv$Upper_Tpiv_97.5<-tpiv.upper.97.5
-tpiv$Lower_Tpiv<-tpiv.lower
-tpiv$Lower_Tpiv_2.5<-tpiv.lower.2.5
-tpiv$Lower_Tpiv_97.5<-tpiv.lower.97.5
-tpiv$Upper_Tpiv_CI<-as.numeric(tpiv$Upper_Tpiv_97.5-tpiv$Upper_Tpiv_2.5)
-tpiv$Lower_Tpiv_CI<-as.numeric(tpiv$Lower_Tpiv_97.5-tpiv$Lower_Tpiv_2.5)
-tpiv$Difference<-as.numeric((tpiv$Upper_Tpiv)-(tpiv$Lower_Tpiv))
-tpiv<-tpiv[!tpiv$Species=="Podocnemis_expansa",] #Remove due to uncertain pattern
-
-# Read in phylogeny
-thom<-read.tree("Thomson.nwk", tree.names=T)
-thom<-drop.tip(thom, setdiff(thom$tip.label, tpiv$Species))
-thom<-ladderize(thom)
-
 dat<-data.frame(cbind(tpiv$Pattern,tpiv$Upper_Tpiv))
 rownames(dat)<-tpiv$Species
 colnames(dat)<-c("Pattern","Tpiv")
@@ -423,16 +340,14 @@ cov.out.full
 HPDinterval(as.mcmc(cov.out.full$par[(1e5/100)+1:nrow(cov.out.full$par),"r"]))
 
 # Repeat analysis without outliers and Chelydra rossignonii
-thom<-drop.tip(thom, c("Kinosternon_stejnegeri","Pelomedusa_subrufa","Pelusios_castaneus"))
-thom<-drop.tip(thom, "Chelydra_rossignonii")
 dat<-data.frame(cbind(tpiv$Pattern,tpiv$Upper_Tpiv))
 rownames(dat)<-tpiv$Species
 colnames(dat)<-c("Pattern","Tpiv")
-dat<-dat[match(thom$tip.label,rownames(dat)),]
+dat<-dat[match(thom.sub$tip.label,rownames(dat)),]
 dat$Pattern<-as.factor(dat$Pattern)
 dat$Tpiv<-as.numeric(dat$Tpiv)
 
-cov.out<-threshBayes(thom, dat, c("discrete","continuous"), ngen=10.1e6, control=list(sample=100,quiet=T), plot=F)
+cov.out<-threshBayes(thom.sub, dat, c("discrete","continuous"), ngen=10.1e6, control=list(sample=100,quiet=T), plot=F)
 plot(cov.out)
 cov.out
 HPDinterval(as.mcmc(cov.out$par[(1e5/100)+1:nrow(cov.out$par),"r"]))
